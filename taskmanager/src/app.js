@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { AppDataSource } = require('./config/database');
@@ -14,13 +16,21 @@ app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/tasks', tasksRouter);
 
-AppDataSource.initialize()
-  .then(() => {
-    console.log('Database connected');
-    app.listen(process.env.PORT || 3000, () => {
-      console.log('Server running on port 3000');
-    });
-  })
-  .catch((error) => console.log('Database connection error:', error));
+// Initialize database connection
+async function initializeApp() {
+  try {
+    await AppDataSource.initialize();
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Database connection error:', error);
+    throw error; // Let Vercel handle the failure
+  }
+}
 
-module.exports = app;
+// Vercel serverless function handler
+module.exports = async (req, res) => {
+  await initializeApp(); // Ensure DB is connected
+
+  // Forward the request to Express
+  app(req, res);
+};
